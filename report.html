@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Car Price Predictor</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<style>
+:root{
+  --bg:#0d0d0d; --card:#1a1a1a; --bord:#2e2e2e;
+  --text:#e8e8e8; --muted:#888;
+  --blue:#4f9cf9; --green:#3ecf8e; --purple:#a78bfa; --orange:#fb923c; --red:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.6}
+.page{max-width:860px;margin:0 auto;padding:36px 18px 60px}
+
+.header{margin-bottom:28px}
+.header h1{font-size:26px;font-weight:700;color:#fff;margin-bottom:4px}
+.header p{color:var(--muted);font-size:13px}
+
+h2{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;
+   letter-spacing:.8px;margin:32px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--bord)}
+
+.card{background:var(--card);border:1px solid var(--bord);border-radius:10px;padding:20px}
+
+/* KPIs */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kpi{background:var(--card);border:1px solid var(--bord);border-radius:10px;padding:18px 14px;text-align:center}
+.kpi .val{font-size:26px;font-weight:700;color:var(--blue)}
+.kpi .val.g{color:var(--green)}
+.kpi .lbl{font-size:11px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+
+/* Model info box */
+.info-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:0}
+.info-item{background:#111;border:1px solid var(--bord);border-radius:8px;padding:14px 16px}
+.info-item .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.info-item .v{font-size:18px;font-weight:700;color:var(--blue)}
+
+/* Charts */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.full{grid-column:1/-1}
+.chart-card h3{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.chart{width:100%;height:230px}
+.chart.tall{height:280px}
+
+/* Predictor */
+.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field select{width:100%;padding:9px 11px;background:#111;border:1px solid var(--bord);border-radius:6px;color:var(--text);font-size:13px;outline:none}
+.field input:focus,.field select:focus{border-color:var(--blue)}
+.field select option{background:#1a1a1a}
+.btn-row{display:flex;gap:10px;margin-top:22px;align-items:center}
+.btn-primary{background:var(--blue);color:#000;border:none;border-radius:6px;padding:11px 28px;font-size:14px;font-weight:700;cursor:pointer}
+.btn-secondary{background:transparent;color:var(--muted);border:1px solid var(--bord);border-radius:6px;padding:11px 20px;font-size:13px;cursor:pointer}
+.result-box{display:none;margin-top:22px;padding:22px 24px;background:#0a1f14;border:1px solid var(--green);border-radius:10px}
+.result-box .lbl{font-size:12px;color:var(--muted);margin-bottom:4px}
+.result-box .price{font-size:40px;font-weight:800;color:var(--green);letter-spacing:-1px}
+.result-box .range{font-size:12px;color:var(--muted);margin-top:6px}
+.error-box{display:none;margin-top:14px;padding:12px 16px;background:#1f0d0d;border:1px solid var(--red);border-radius:8px;color:var(--red);font-size:13px}
+
+.footer{margin-top:48px;padding-top:14px;border-top:1px solid var(--bord);text-align:center;font-size:12px;color:#444}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <h1>&#x1F697; Car Price Predictor</h1>
+    <p>My first ML project &nbsp;&middot;&nbsp; 205 cars &nbsp;&middot;&nbsp; Linear Regression</p>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="val">205</div><div class="lbl">Cars in Dataset</div></div>
+    <div class="kpi"><div class="val g">0.841</div><div class="lbl">R&#178; Score</div></div>
+    <div class="kpi"><div class="val g">$3,542</div><div class="lbl">RMSE</div></div>
+  </div>
+
+  <!-- Model info -->
+  <h2>Model Info</h2>
+  <div class="card">
+    <div class="info-row">
+      <div class="info-item"><div class="k">Algorithm</div><div class="v" style="font-size:15px;color:var(--blue)">Linear Regression</div></div>
+      <div class="info-item"><div class="k">R&#178; Score</div><div class="v">0.8411</div></div>
+      <div class="info-item"><div class="k">Mean Abs. Error</div><div class="v">$2,127</div></div>
+    </div>
+  </div>
+
+  <!-- Predictor -->
+  <h2>&#x1F4C8; Predict a Car Price</h2>
+  <div class="card">
+    <p style="color:var(--muted);font-size:13px;margin-bottom:18px">Fill in the car details and click <strong style="color:var(--text)">Predict Price</strong>.</p>
+    <div class="form-grid" id="form-grid"></div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btn-predict">Predict Price</button>
+      <button class="btn-secondary" id="btn-reset">Reset</button>
+    </div>
+    <div class="result-box" id="pred-result">
+      <div class="lbl">Estimated Price (Linear Regression)</div>
+      <div class="price" id="pred-value"></div>
+      <div class="range" id="pred-range"></div>
+    </div>
+    <div class="error-box" id="pred-error"></div>
+  </div>
+
+  <!-- EDA -->
+  <h2>&#x1F4CA; Data Insights</h2>
+  <div class="grid2">
+    <div class="card chart-card">
+      <h3>Price Distribution</h3>
+      <div id="c1" class="chart"></div>
+    </div>
+    <div class="card chart-card">
+      <h3>Avg Price by Brand (Top 10)</h3>
+      <div id="c2" class="chart"></div>
+    </div>
+    <div class="card chart-card full">
+      <h3>Horsepower vs Price</h3>
+      <div id="c3" class="chart tall"></div>
+    </div>
+    <div class="card chart-card full">
+      <h3>Actual vs Predicted Price (Test Set)</h3>
+      <div id="c4" class="chart tall"></div>
+    </div>
+  </div>
+
+  <div class="footer">Made with IBM Bob &nbsp;&middot;&nbsp; My First ML Project</div>
+</div>
+
+<script>
+var B='#4f9cf9',G='#3ecf8e',P='#a78bfa',O='#fb923c';
+var CARD='#1a1a1a',BORD='#2e2e2e',MUT='#888',TXT='#e8e8e8';
+function mc(id){return echarts.init(document.getElementById(id),'dark');}
+
+// 1. Price distribution
+(function(){
+  var c=mc('c1');
+  c.setOption({backgroundColor:CARD,
+    tooltip:{trigger:'axis'},
+    xAxis:{type:'category',data:['<$8k','$8-12k','$12-18k','$18-25k','>$25k'],axisLabel:{color:MUT},axisLine:{lineStyle:{color:BORD}}},
+    yAxis:{type:'value',name:'Cars',nameTextStyle:{color:MUT},axisLabel:{color:MUT},splitLine:{lineStyle:{color:BORD}}},
+    series:[{type:'bar',barWidth:'55%',label:{show:true,position:'top',color:TXT,fontSize:11},
+      data:[{value:61,itemStyle:{color:B}},{value:59,itemStyle:{color:B}},{value:48,itemStyle:{color:P}},{value:19,itemStyle:{color:P}},{value:18,itemStyle:{color:O}}]}]
+  });
+})();
+
+// 2. Brand avg price
+(function(){
+  var c=mc('c2');
+  var labels=['alfa-romero','toyouta','mercury','audi','volvo','bmw','porsche','porcshce','buick','jaguar'];
+  var vals=[15498,15750,16503,17859,18063,26118,31118,32528,33647,34600];
+  c.setOption({backgroundColor:CARD,
+    tooltip:{trigger:'axis',formatter:function(p){return p[0].name+': $'+p[0].value.toLocaleString();}},
+    grid:{left:'22%',right:'12%',top:'4%',bottom:'4%'},
+    xAxis:{type:'value',axisLabel:{color:MUT,formatter:function(v){return '$'+(v/1000).toFixed(0)+'k';}},splitLine:{lineStyle:{color:BORD}}},
+    yAxis:{type:'category',data:labels,axisLabel:{color:MUT}},
+    series:[{type:'bar',data:vals,
+      itemStyle:{color:function(p){return p.dataIndex>=8?G:B;}},
+      label:{show:true,position:'right',color:TXT,fontSize:10,formatter:function(p){return '$'+(p.value/1000).toFixed(0)+'k';}}}]
+  });
+})();
+
+// 3. HP vs Price scatter
+(function(){
+  var c=mc('c3');
+  var data=[[182,30760],[160,17859],[97,9549],[110,11850],[123,28248],[69,7799],[56,7788],[70,9258],[94,10198],[52,7775],[110,13295],[70,8238],[120,18280],[92,9988],[184,40960],[62,6488],[48,5151],[145,12629],[88,8189],[94,9960],[84,8495],[152,13499],[69,8249],[58,6479],[68,6692],[182,41315],[116,9639],[114,13415],[69,7999],[114,12940]];
+  c.setOption({backgroundColor:CARD,
+    tooltip:{trigger:'item',formatter:function(p){return 'HP: '+p.data[0]+'<br/>Price: $'+p.data[1].toLocaleString();}},
+    xAxis:{type:'value',name:'Horsepower',nameLocation:'middle',nameGap:26,nameTextStyle:{color:MUT},axisLabel:{color:MUT},splitLine:{lineStyle:{color:BORD}}},
+    yAxis:{type:'value',name:'Price ($)',nameLocation:'middle',nameGap:58,nameTextStyle:{color:MUT},axisLabel:{color:MUT,formatter:function(v){return '$'+(v/1000)+'k';}},splitLine:{lineStyle:{color:BORD}}},
+    series:[{type:'scatter',data:data,symbolSize:9,itemStyle:{color:B,opacity:0.8}}]
+  });
+})();
+
+// 4. Actual vs Predicted (LR test set)
+(function(){
+  var c=mc('c4');
+  var actual=[30760,17859.2,9549,11850,28248,7799,7788,9258,10198,7775,13295,8238,18280,9988,40960,6488,5151,12629,8189,9960,8495,13499,8249,6479,6692,41315,9639,13415,7999,12940,25552,6229,7898,21485,7689,28176,11259,10945,8916.5,14489,7463];
+  var pred=  [25535.8,17667.5,9791.9,13572.4,26272.9,6374.3,8375.5,5975.8,9577.5,7025.8,13833.5,5982.8,16499.4,10485.6,40034.4,6477.2,-187.8,14377.7,9640.7,10330.2,11096.6,20990.8,7848.1,3173.6,7581.6,24464.8,13953.6,15739.9,5381.2,16144.1,26374,7177.3,4622.7,22082.8,8103.6,26578.2,10121.9,9647.4,6832.1,14597.4,7467.2];
+  var pts=actual.map(function(a,i){return[a,pred[i]];});
+  c.setOption({backgroundColor:CARD,
+    tooltip:{trigger:'item',formatter:function(p){return 'Actual: $'+p.data[0].toLocaleString()+'<br/>Predicted: $'+Math.round(p.data[1]).toLocaleString();}},
+    legend:{data:['Predictions','Perfect fit'],bottom:0,textStyle:{color:MUT,fontSize:11}},
+    xAxis:{type:'value',name:'Actual Price',nameLocation:'middle',nameGap:26,nameTextStyle:{color:MUT},min:0,axisLabel:{color:MUT,formatter:function(v){return '$'+(v/1000)+'k';}},splitLine:{lineStyle:{color:BORD}}},
+    yAxis:{type:'value',name:'Predicted Price',nameLocation:'middle',nameGap:60,nameTextStyle:{color:MUT},axisLabel:{color:MUT,formatter:function(v){return '$'+(v/1000)+'k';}},splitLine:{lineStyle:{color:BORD}}},
+    series:[
+      {name:'Predictions',type:'scatter',data:pts,symbolSize:9,itemStyle:{color:B,opacity:0.75}},
+      {name:'Perfect fit',type:'line',data:[[0,0],[45000,45000]],lineStyle:{color:O,type:'dashed',width:2},symbol:'none'}
+    ]
+  });
+})();
+
+// ── Linear Regression Predictor ───────────────────────────────────────────────
+var LR = {"features": ["symboling", "fueltype", "aspiration", "doornumber", "carbody", "drivewheel", "enginelocation", "wheelbase", "carlength", "carwidth", "carheight", "curbweight", "enginetype", "cylindernumber", "enginesize", "fuelsystem", "boreratio", "stroke", "compressionratio", "horsepower", "peakrpm", "citympg", "highwaympg", "brand"], "scaler_mean": [0.9024390243902439, 0.9085365853658537, 0.17682926829268292, 0.4573170731707317, 2.6036585365853657, 1.3475609756097562, 0.018292682926829267, 98.72865853658533, 174.12743902439013, 65.92256097560977, 53.715853658536616, 2556.439024390244, 2.9451219512195124, 2.1280487804878048, 126.41463414634147, 3.274390243902439, 3.3208536585365818, 3.2549085365853623, 10.08908536585366, 104.70121951219512, 5144.207317073171, 25.073170731707318, 30.573170731707318, 13.475609756097562], "scaler_scale": [1.240670118864379, 0.2882669915505561, 0.3815241514868447, 0.49817483653561573, 0.866862174595363, 0.5476614607129727, 0.13400768887704834, 5.950658553880082, 12.043656999815658, 2.116984919341893, 2.471815246479907, 510.3722959059557, 1.1057116060979046, 0.7663302463043927, 40.3454446969293, 2.016173081977386, 0.26894192509160963, 0.31692139161582644, 3.842403467537841, 40.10522438415019, 492.3314181649532, 6.146147887002025, 6.41554987435706, 7.351332399152664], "encoders": {"fueltype": ["diesel", "gas"], "aspiration": ["std", "turbo"], "doornumber": ["four", "two"], "carbody": ["convertible", "hardtop", "hatchback", "sedan", "wagon"], "drivewheel": ["4wd", "fwd", "rwd"], "enginelocation": ["front", "rear"], "enginetype": ["dohc", "dohcv", "l", "ohc", "ohcf", "ohcv", "rotor"], "cylindernumber": ["eight", "five", "four", "six", "three", "twelve", "two"], "fuelsystem": ["1bbl", "2bbl", "4bbl", "idi", "mfi", "mpfi", "spdi", "spfi"], "brand": ["alfa-romero", "audi", "bmw", "buick", "chevrolet", "dodge", "honda", "isuzu", "jaguar", "maxda", "mazda", "mercury", "mitsubishi", "nissan", "peugeot", "plymouth", "porcshce", "porsche", "renault", "saab", "subaru", "toyota", "toyouta", "vokswagen", "volkswagen", "volvo", "vw"]}, "coef": [190.02654515091433, 3201.7108033833774, 427.62106914050463, -692.3309314884758, -967.1909661767223, 400.89517115553747, 1534.3125481479776, 1045.3523712888693, -558.685215607959, 1215.0115058309357, 493.93289452466473, 1248.9190943186297, 313.49317900249713, -189.71844783226058, 3221.278544579926, 275.47532400506265, -210.85867698057422, -635.8321370862413, 3641.5502325252246, 746.2619507181435, 630.3280743540846, -1039.1873716285427, 530.4185711724389, -1077.8406108804659], "intercept": 13223.414634146366};
+
+var FIELDS = [
+  ['brand',           'Brand',             'select', LR.encoders.brand,          'toyota'],
+  ['fueltype',        'Fuel Type',         'select', LR.encoders.fueltype,       'gas'],
+  ['aspiration',      'Aspiration',        'select', LR.encoders.aspiration,     'std'],
+  ['carbody',         'Body Style',        'select', LR.encoders.carbody,        'sedan'],
+  ['drivewheel',      'Drive Wheel',       'select', LR.encoders.drivewheel,     'fwd'],
+  ['doornumber',      'Doors',             'select', LR.encoders.doornumber,     'four'],
+  ['enginetype',      'Engine Type',       'select', LR.encoders.enginetype,     'ohc'],
+  ['cylindernumber',  'Cylinders',         'select', LR.encoders.cylindernumber, 'four'],
+  ['fuelsystem',      'Fuel System',       'select', LR.encoders.fuelsystem,     'mpfi'],
+  ['enginelocation',  'Engine Location',   'select', LR.encoders.enginelocation, 'front'],
+  ['horsepower',      'Horsepower',        'number', '110',   '110'],
+  ['enginesize',      'Engine Size (cc)',  'number', '122',   '122'],
+  ['curbweight',      'Curb Weight (lbs)', 'number', '2500',  '2500'],
+  ['carwidth',        'Car Width (in)',    'number', '66.0',  '66.0'],
+  ['carlength',       'Car Length (in)',   'number', '175.0', '175.0'],
+  ['carheight',       'Car Height (in)',   'number', '54.0',  '54.0'],
+  ['wheelbase',       'Wheelbase (in)',    'number', '102.4', '102.4'],
+  ['citympg',         'City MPG',          'number', '22',    '22'],
+  ['highwaympg',      'Highway MPG',       'number', '28',    '28'],
+  ['peakrpm',         'Peak RPM',          'number', '5500',  '5500'],
+  ['compressionratio','Compression Ratio', 'number', '9.0',   '9.0'],
+  ['boreratio',       'Bore Ratio',        'number', '3.31',  '3.31'],
+  ['stroke',          'Stroke',            'number', '3.19',  '3.19'],
+  ['symboling',       'Symboling',         'number', '1',     '1']
+];
+
+(function(){
+  var grid=document.getElementById('form-grid');
+  FIELDS.forEach(function(f){
+    var wrap=document.createElement('div'); wrap.className='field';
+    var lbl=document.createElement('label'); lbl.textContent=f[1]; wrap.appendChild(lbl);
+    var el;
+    if(f[2]==='select'){
+      el=document.createElement('select'); el.id='inp_'+f[0];
+      f[3].forEach(function(o){
+        var opt=document.createElement('option'); opt.value=o; opt.textContent=o;
+        if(o===f[4]) opt.selected=true; el.appendChild(opt);
+      });
+    } else {
+      el=document.createElement('input'); el.type='number'; el.id='inp_'+f[0]; el.value=f[4]; el.step='any';
+    }
+    wrap.appendChild(el); grid.appendChild(wrap);
+  });
+})();
+
+document.getElementById('btn-predict').addEventListener('click',function(){
+  var eBox=document.getElementById('pred-error'), rBox=document.getElementById('pred-result');
+  eBox.style.display='none'; rBox.style.display='none';
+
+  var raw={};
+  for(var i=0;i<FIELDS.length;i++){
+    var f=FIELDS[i], el=document.getElementById('inp_'+f[0]);
+    raw[f[0]]=f[2]==='select'?el.value:parseFloat(el.value);
+    if(f[2]==='number'&&isNaN(raw[f[0]])){eBox.textContent='Please fill in: '+f[1];eBox.style.display='block';return;}
+  }
+
+  // encode + scale
+  var enc=LR.encoders;
+  var x=LR.features.map(function(feat){
+    var v=raw[feat];
+    if(enc[feat]){var i=enc[feat].indexOf(String(v));return i<0?0:i;}
+    return parseFloat(v)||0;
+  });
+  var xs=x.map(function(v,i){return(v-LR.scaler_mean[i])/LR.scaler_scale[i];});
+
+  // linear regression: price = dot(coef, xs) + intercept
+  var price=LR.intercept;
+  LR.coef.forEach(function(c,i){price+=c*xs[i];});
+  price=Math.max(price,1000);
+
+  document.getElementById('pred-value').textContent='$'+Math.round(price).toLocaleString();
+  document.getElementById('pred-range').textContent='Model MAE: \xb1$2,127';
+  rBox.style.display='block';
+  rBox.scrollIntoView({behavior:'smooth',block:'nearest'});
+});
+
+document.getElementById('btn-reset').addEventListener('click',function(){
+  FIELDS.forEach(function(f){
+    var el=document.getElementById('inp_'+f[0]);
+    if(f[2]==='select'){for(var i=0;i<el.options.length;i++){if(el.options[i].value===f[4]){el.selectedIndex=i;break;}}}
+    else{el.value=f[4];}
+  });
+  document.getElementById('pred-result').style.display='none';
+  document.getElementById('pred-error').style.display='none';
+});
+</script>
+</body>
+</html>
